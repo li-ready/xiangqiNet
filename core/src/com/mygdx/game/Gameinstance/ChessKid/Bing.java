@@ -18,18 +18,13 @@ public class Bing extends chess {
         else {
             y1 = y - getQipany();
         }
-        //待删除
-        System.out.println("isAcross= "+guo);
-        System.out.println("qipanX= "+getQipanx()+" qipanY= "+getQipany());
         x1=x-getQipanx();
-        System.out.println("x1,y1= "+x1+" "+y1);//待删除
         if((isCamp()&&y1<0)|(!isCamp()&&y1>0))return false;
         if(x1*y1!=0)return false;
         if((isCamp()&&(getQipany()<0)&&y1!=1)|(!isCamp()&&(getQipany()>0)&&y1!=-1))return false;
-        //if(x1+y1>1|x1+y1<-1)return false;
         return true;
         }
     public boolean takeqiJudge(chess chessP,int[][] fenbu){
-        return zouqiJudge(chessP.getQipanx(),chessP.getQipany(),fenbu);
+        return zouqiJudge(chessP.getQipanx(),chessP.getQipany(),fenbu);       
     }
 }

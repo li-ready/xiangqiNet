@@ -9,31 +9,75 @@ import com.badlogic.gdx.assets.loaders.ModelLoader;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g3d.*;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.model.Node;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.math.collision.Ray;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.mygdx.game.Gameinstance.ChessKid.*;
+import com.mygdx.game.Gameinstance.GameSet;
 import com.mygdx.game.Gameinstance.cameraInputTest;
 import com.mygdx.game.Gameinstance.chess;
-import com.mygdx.game.itf.ClientNetListener;
+import com.mygdx.game.itf.Client;
 import com.mygdx.game.itf.Shape;
 import com.mygdx.game.tools.stools;
 
+//imgui包
+//imgui引入的包
 
-public class xiangqiNet extends InputAdapter implements ApplicationListener, ClientNetListener {
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class xiangqiNet extends InputAdapter implements ApplicationListener, Client {
+    private int huiqiCount=0;
+    private DengLu dengluqi=null;
+    private float pngWaitTime=0;
+    private float pngLifeTIme=0;
+    private int PngTime=0;
+    private String initmap="o";
+    private int res=0;//默认退出则输掉比赛
+    private int getres=0;
+    private int his_O_roleid=-1;
+    private int his_x=-100;
+    private int his_y=-100;
+    private int his_dead_roleid=-1;
+    private Button button2=null;
+    private boolean yicishuaxing=true;
+    private boolean danren=false;
+    public xiangqiNet(){
+
+    }
+    public xiangqiNet(String sse){
+        System.out.println("xiangqi initmap:"+sse);
+        initmap=sse;
+    }
+    public xiangqiNet(String sse,boolean danren1){
+        System.out.println("xiangqi initmap:"+sse);
+        initmap=sse;
+        danren=danren1;
+    }
     public int getClient_id() {
         return client_id;
     }
-
     private int client_id=1000;
     private boolean RBhasSet=false;
 
@@ -45,6 +89,11 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
         RB= managerC.port==6666;
         roundControl=-1;
     }
+    //imgui的测试
+    private Texture image;
+    //2d的ui的舞台
+    private Texture PngTexture;
+    private SpriteBatch batch;
     private boolean isconnect=false;
     private String StrTemp1;
     private String StrTemp2;
@@ -84,6 +133,7 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
     private Shape shape0;
     private int visibleCount;
     //以下是二维场景渲染4大件
+    private Table table;
     protected Stage stage;
     protected Label label;
     protected BitmapFont font;
@@ -97,9 +147,17 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
     public boolean RB=true;
     private Vector2[][] qipanDot;
     private float time;
-
+    //多路输入控制器,将需要绑定的对象绑定
+    private InputMultiplexer inputMultiplexer=new InputMultiplexer();
     @Override
     public void create () {
+        huiqiCount=2;
+        {//imgui的创建
+        }
+        {//悬浮效果
+            batch = new SpriteBatch();
+        }
+        Gdx.gl.glClearColor(0, 0, 0, 0);
         vector2Temp=new Vector2();
         RedTakenChessArray=new Array<chess>();
         BlackTakenChessArray=new Array<chess>();
@@ -107,11 +165,7 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
         selectionMaterial = new Material();
         originalMaterial=new Material();
         visibleCount = 0;
-        stage = new Stage();
-        font = new BitmapFont();
-        label = new Label(" ", new Label.LabelStyle(font, Color.WHITE));
-        stage.addActor(label);
-        stringBuilder = new StringBuilder();
+
         bounds=new BoundingBox();
         chessFenbu =new int[9][11];
         for (int i = 0; i < 9; i++) {
@@ -129,24 +183,143 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
         direction=new Vector3(-3,0,-3);
         step=0;
         modelBatch = new ModelBatch();
+        Gdx.graphics.setWindowedMode(1000,750);
         environment = new Environment();
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
-        Gdx.graphics.setWindowedMode(1000,750);
         cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         cam.position.set(7f, 7f, 100f);
         cam.lookAt(0,0,0);
         cam.near = 1f;
         cam.far = 300f;
         cam.update();
+        {//ui舞台的初始化
+            //stage = new Stage();备份
+            stage = new Stage(new ScreenViewport());
+            //绑定stage到输入控制
+            inputMultiplexer.addProcessor(stage);
+            font = new BitmapFont();
+            label = new Label(" ", new Label.LabelStyle(font, Color.WHITE));
+            table=new Table().right();
+            table.setFillParent(true);
+            table.setDebug(true);
+            //加入按钮
+                Button button1=stools.createButton("baocun");
+                table.add(button1);
+                button1.addListener(new ClickListener() {
+                    @Override
+                    public void clicked(InputEvent event, float x, float y) {
+                        System.out.println("baocun");
+                        String s=getChessMap();
+                        try {
+                            File folder = new File("./save");
+                            folder.mkdir();
+                            SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+                            System.out.println(formatter.format(new Date()));
+                            File file = new File("./save/"+formatter.format(new Date()) +".txt");
+                            file.createNewFile();
+                            FileWriter writer = new FileWriter(file);
+                            writer.write(s);
+                            writer.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        CreatePngAnime("baocunchenggong",0,1.5f);
+                        //todo:保存按钮功能
+                    }
+                });
+            //悔棋功能
+            table.row();
+            button2=stools.createButton("huiqi");
+            table.add(button2);
+            button2.addListener(new ClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    if(huiqiCount>0){
+                        roundControl=1;
+                        huiqiCount--;
+                        managerC.MessToServer(client_id+"Huiqi000:");
+                        if (getchessByRole_id_InRedTaken(his_dead_roleid) != null) {
+                            getchessByRole_id_InRedTaken(his_dead_roleid).setqipanLocation(chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).getQipanx(),chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).getQipany());
+                            getchessByRole_id_InRedTaken(his_dead_roleid).qipanLocationRefresh();
+                            for (int i = 0; i < RedTakenChessArray.size; i++) {
+                                if(RedTakenChessArray.get(i).getRole_id()==his_dead_roleid){
+                                    chessArray.add(RedTakenChessArray.get(i));
+                                    RedTakenChessArray.removeIndex(i);
+                                }
+                            }
+                        }
+                        if (getchessByRole_id_InBlackTaken(his_dead_roleid) != null) {
+                            getchessByRole_id_InBlackTaken(his_dead_roleid).setqipanLocation(chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).getQipanx(),chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).getQipany());
+                            getchessByRole_id_InBlackTaken(his_dead_roleid).qipanLocationRefresh();
+                            for (int i = 0; i < BlackTakenChessArray.size; i++) {
+                                if(BlackTakenChessArray.get(i).getRole_id()==his_dead_roleid){
+                                    chessArray.add(BlackTakenChessArray.get(i));
+                                    BlackTakenChessArray.removeIndex(i);
+                                }
+                            }
+                        }
+                        chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).setqipanLocation(his_x,his_y);
+                        chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).qipanLocationRefresh();
+                        if(huiqiCount==0){
+                            Texture myTexture = new Texture(Gdx.files.internal(stools.assetaddress("huiqi1.png")));
+                            TextureRegion myTextureRegion = new TextureRegion(myTexture);
+                            Drawable drawable=new TextureRegionDrawable(myTextureRegion);
+                            button2.getStyle().up=drawable;
+                        }
+                    }
+                }
+            });
+            //认输功能
+            if(!danren) {
+                table.row();
+                Button button3 = stools.createButton("renshu");
+                table.add(button3);
+                button3.addListener(new ClickListener() {
+                    @Override
+                    public void clicked(InputEvent event, float x, float y) {
+                        getres = 1;
+                        res = 0;
+                        managerC.MessToServer(client_id + "Result00:0");
+                    }
+                });
+            }
+            //退出功能
+            table.row();
+            Button button5=stools.createButton("tuichu");
+            table.add(button5);
+            button5.addListener(new ClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    Gdx.app.exit();
+                }
+            });
 
+            stage.addActor(table);
+            stage.addActor(label);
+            stringBuilder = new StringBuilder();
+            /*//添加一个表格,表格管理ui
+            table = new Table();
+            table.setFillParent(true);
+            stage.addActor(table);
+            table.setDebug(true); // This is optional, but enables debug lines for tables.
+            //添加两个按钮
+            TextButton button1 = new TextButton("Button 1",);
+            table.add(button1);
+            TextButton button2 = new TextButton("Button 2", );
+            table.add(button2);*/
+        }
         assets = new AssetManager();
         assets.load(stools.assetaddress("source/ChineseChess.g3db"), Model.class);
         loading = true;
-
+        //绑定视角转动器
         camController = new cameraInputTest(cam);
-        Gdx.input.setInputProcessor(new InputMultiplexer(this, camController));
-        //Gdx.input.setInputProcessor(camController);
+        inputMultiplexer.addProcessor(this);
+        //绑定stage到输入控制
+        inputMultiplexer.addProcessor(camController);
+        //多路输入绑定到输入器
+        //Gdx.input.setInputProcessor(inputMultiplexer);
+        Gdx.input.setInputProcessor(inputMultiplexer);
         qipanDot=new Vector2[9][11];
         for (int i = 0; i < 9; i++) {
             for (int j = 0; j < 11; j++) {
@@ -168,9 +341,16 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
         }
     }
 
+    private void CreatePngAnime(String name,float png_wait_time,float png_life_time) {
+        pngWaitTime=png_wait_time;
+        pngLifeTIme=png_life_time;
+        PngTexture=new Texture(Gdx.files.internal(stools.assetaddress(name+".png")));
+    }
+
     @Override
     public void resize(int width, int height) {
-
+        //窗口被改变,调整ui的布局
+        stage.getViewport().update(width, height, true);
     }
     private void refreshChessDistribution()
     {
@@ -327,7 +507,6 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
                     role_id_count++;
                 }
             }
-
             }
         }
         for (chess chess2:chessArray
@@ -346,14 +525,28 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
         //qizi.first().transform.setToTranslation(location.x,location.y,location.z);
         //待删除
        /*for (chess chess1 : chessArray) {
-
             System.out.println(chess1.nodes.get(0).id);
         }*/
         loading = false;
-    }
 
+    }
     @Override
     public void render() {
+        if((!loading)&&(!initmap.equals("o"))&&(managerC!=null)&&(yicishuaxing)) {
+            if(managerC.connect!=null) {
+                yicishuaxing = false;
+                readChessMap(initmap);
+                System.out.println("beauty save make");
+                readChessMap(initmap);
+                managerC.MessToServer(client_id + "refresh0:" + initmap);
+                initmap = "o";
+            }
+
+        }
+        if(getres==1){
+            getres=2;
+            getGameResult();
+        }
         visibleCount = 0;
         time+=Gdx.graphics.getDeltaTime();
         //time+=roundControl==-1?Gdx.graphics.getDeltaTime():0;
@@ -366,7 +559,6 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
             if(waitTakenTime<=0f)
             {
                takeChessDone();
-
             }
         }
         for (chess chess1 : chessArray
@@ -418,13 +610,43 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
         if (space != null)
             modelBatch.render(space);
         modelBatch.end();
-        stringBuilder.setLength(0);
-        stringBuilder.append(" FPS: ").append(Gdx.graphics.getFramesPerSecond());
-        stringBuilder.append(" Visible: ").append(visibleCount);
-        stringBuilder.append(" Selected: ").append(roundControl);
-        stringBuilder.append(" Selecting: ").append(selecting);
-        label.setText(stringBuilder);
-        stage.draw();
+        {//imgui的渲染
+        }
+        {//ui的stage的刷新
+            {//性能信息
+                stringBuilder.setLength(0);
+                stringBuilder.append(" FPS: ").append(Gdx.graphics.getFramesPerSecond());
+                stringBuilder.append(" Visible: ").append(visibleCount);
+                stringBuilder.append(" Selected: ").append(roundControl);
+                stringBuilder.append(" Selecting: ").append(selecting);
+                stringBuilder.append(" changkuan: ").append(Gdx.graphics.getHeight()+" "+Gdx.graphics.getWidth());
+                label.setText(stringBuilder);
+            }
+            {//ui
+                stage.act(deltaTime);
+            }
+            stage.draw();
+        }
+        if(pngWaitTime!=0){
+            pngWaitTime-=deltaTime;
+            pngWaitTime=(pngWaitTime<0)?0:pngWaitTime;
+        }
+        if((pngWaitTime==0)&&(pngLifeTIme!=0)){
+            pngLifeTIme-=deltaTime;
+            //System.out.println(PngTexture.getWidth()+"  "+PngTexture.getHeight());
+            batch.setProjectionMatrix(new Matrix4().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
+            batch.begin();
+            float centerX = Gdx.graphics.getWidth() / 2f;
+            float centerY = Gdx.graphics.getHeight() / 2f;
+            float spriteX = centerX - PngTexture.getWidth() / 2f;
+            float spriteY = centerY - PngTexture.getHeight() / 2f;
+            batch.draw(PngTexture,spriteX,spriteY);
+            batch.end();
+            pngLifeTIme=(pngLifeTIme<0)?0:pngLifeTIme;
+            if((pngLifeTIme==0)&&(getres==2)){
+                Gdx.app.exit();
+            }
+        }
     }
     public void takeChessDone(){
         waitTakenTime=0f;
@@ -437,10 +659,19 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
             vector3Temp1= stools.qipanLocationToLocation(true,RedTakenChessArray.size,vector3Temp1);
             RedTakenChessArray.add(chessArray.get(waitTaken));
         }
-        //输出吃棋特效,待删除,待更改
+        //todo:输出吃棋特效,待删除
         System.out.println("takechess");
         chessFenbu[chessArray.get(waitTaken).getArrayQx()][chessArray.get(waitTaken).getArrayQy()]=0;
         chessArray.get(waitTaken).transform.setTranslation(vector3Temp1);
+        if(chessArray.get(waitTaken).getRole_id()<=1){
+            if(roundControl==1){
+                res=0;
+            }
+            else {
+            res=2;
+            }
+            getres=1;
+        }
         chessArray.removeIndex(waitTaken);
         //System.out.println(RedTakenChessArray.get(0).nodes.get(0).id);
         waitTaken=-1;
@@ -646,14 +877,34 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
 
     @Override
     public void dispose() {
-        System.out.println("游戏被释放了");
+        System.out.println("game over");
         modelBatch.dispose();
         chessArray.clear();
         assets.dispose();
+        //输赢决定,释放连接
+        managerC.MessToServer(client_id+"Result00:"+res);
+        managerC.dispose();
+        {//imgui的释放
+        }
+       /* stage2D.dispose();*/
     }
 
     public chess getchessByRole_id(int id){
         for (chess chess0 : chessArray) {
+            if(id==chess0.getRole_id())
+                return chess0;
+        }
+        return null;
+    }
+    public chess getchessByRole_id_InRedTaken(int id){
+        for (chess chess0 : RedTakenChessArray) {
+            if(id==chess0.getRole_id())
+                return chess0;
+        }
+        return null;
+    }
+    public chess getchessByRole_id_InBlackTaken(int id){
+        for (chess chess0 : BlackTakenChessArray) {
             if(id==chess0.getRole_id())
                 return chess0;
         }
@@ -679,7 +930,8 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
         System.out.println(StrTemp2);
         switch (StrTemp1){
             case "refresh0": {
-                NetRefresh(StrTemp2);
+                System.out.println("I have save refresh");
+                initmap=StrTemp2;
                 break;
             }
             case "Zouqi000":{ String[] result = StrTemp2.split(",");
@@ -690,11 +942,16 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
             }
             case "RBset000":{//被设置为红方,roundControl=1
                RB=Integer.parseInt(StrTemp2)==0;
-               RBhasSet=true;
-               if(RB){
+               if(RB&&!RBhasSet){
                    roundControl=1;
                }
-                System.out.println("RB has been set:"+RB);
+                if(!RBhasSet) {
+                    dengluqi.jieguoRet();
+                    System.out.println("RB has been set:"+RB);
+                    System.out.println("RBset initpmap:"+initmap);
+
+                }
+                RBhasSet=true;
                break;
             }
             case "Takeqi00":{
@@ -708,22 +965,79 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
                 NetExtendData(StrTemp2);break;
             }
             case "Disconn0":{
-                NetDisconnect();
+                NetDisconnect();break;
             }
             case "HasloseS":{
                 //client_id是发信息的id
-                Client_LoseConnectWait();
+                Client_LoseConnectWait();break;
             }
             case "Idset000":{
                 //client_id是发信息的id
-                client_id=Integer.parseInt(StrTemp2);
-                if(!RBhasSet) {
-                    ask_RB();
+                client_id=Integer.parseInt(StrTemp2);break;
+            }
+            case "Result00":{
+                //client_id是发信息的id
+                res=Integer.parseInt(StrTemp2);
+                getres=1;
+                managerC.MessToServer(client_id+ "Result00:"+res);
+                break;
+            }
+            case "Huiqi000":{
+                //client_id是发信息的id
+                huiqiCount++;
+                roundControl=-1;
+                if(huiqiCount>0){
+                    huiqiCount--;
+                    if (getchessByRole_id_InRedTaken(his_dead_roleid) != null) {
+                        getchessByRole_id_InRedTaken(his_dead_roleid).setqipanLocation(chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).getQipanx(),chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).getQipany());
+                        getchessByRole_id_InRedTaken(his_dead_roleid).qipanLocationRefresh();
+                        for (int j = 0; j < RedTakenChessArray.size; j++) {
+                            if(RedTakenChessArray.get(j).getRole_id()==his_dead_roleid){
+                                chessArray.add(RedTakenChessArray.get(j));
+                                RedTakenChessArray.removeIndex(j);
+                            }
+                        }
+                    }
+                    if (getchessByRole_id_InBlackTaken(his_dead_roleid) != null) {
+                        getchessByRole_id_InBlackTaken(his_dead_roleid).setqipanLocation(chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).getQipanx(),chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).getQipany());
+                        getchessByRole_id_InBlackTaken(his_dead_roleid).qipanLocationRefresh();
+                        for (int i1 = 0; i1 < BlackTakenChessArray.size; i1++) {
+                            if(BlackTakenChessArray.get(i1).getRole_id()==his_dead_roleid){
+                                chessArray.add(BlackTakenChessArray.get(i1));
+                                BlackTakenChessArray.removeIndex(i1);
+                            }
+                        }
+                    }
+                    chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).setqipanLocation(his_x,his_y);
+                    chessArray.get(getchessByRole_id_toArrayid(his_O_roleid)).qipanLocationRefresh();
                 }
+                FenbuRefresh();
+                break;
             }
         }
         isconnect=true;//接到信息已经连接
         return 0;
+    }
+    public void getGameResult(){
+        System.out.println("res0:"+res);
+        inputMultiplexer.clear();
+        switch (res){
+            case 0:{
+               //输掉游戏
+                CreatePngAnime("ninshule",0,4f);
+                break;
+            }
+            case 1:{
+                //平局游戏
+                CreatePngAnime("pingju",0,4f);
+                break;
+            }
+            case 2:{
+                //赢得游戏
+                CreatePngAnime("ninyingle",0,4f);
+                break;
+            }
+        }
     }
     public void Client_LoseConnectWait(){//connect线程依然在运行,并调用了这个方法
         isconnect=false;
@@ -751,12 +1065,17 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
     }
     //接收服务器信息方法,有Net前缀的都是处理服务器发来的信息的方法
     public void NetRefresh(String Output){
+        readChessMap(Output);
     }
     public void NetExtendData(String str){
     }
     public void NetDisconnect(){
     }
     public void NetZouqi(int ORole_id, int x, int y) {
+        his_O_roleid=ORole_id;
+        his_x=chessArray.get(getchessByRole_id_toArrayid(ORole_id)).getQipanx();
+        his_y=chessArray.get(getchessByRole_id_toArrayid(ORole_id)).getQipany();
+        his_dead_roleid=-1;
         chess chess0=getchessByRole_id(ORole_id);
         if(chess0!=null){
             chess0.createPathAnimation(x , y, chessFenbu);
@@ -764,6 +1083,10 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
         }
     }
     public void NetTakeqi(int ORole_id, int PRole_id) {
+        his_O_roleid=ORole_id;
+        his_x=chessArray.get(getchessByRole_id_toArrayid(ORole_id)).getQipanx();
+        his_y=chessArray.get(getchessByRole_id_toArrayid(ORole_id)).getQipany();
+        his_dead_roleid=PRole_id;
         chess chess0=getchessByRole_id(ORole_id);
         int x=getchessByRole_id_toArrayid(PRole_id);
         if((chess0!=null)&&(x!=-1)){
@@ -777,10 +1100,18 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
     public void ask_client_id(){
     }
     public void zouqi(int ORole_id, int x, int y) {
+        his_O_roleid=ORole_id;
+        his_x=chessArray.get(getchessByRole_id_toArrayid(ORole_id)).getQipanx();
+        his_y=chessArray.get(getchessByRole_id_toArrayid(ORole_id)).getQipany();
+        his_dead_roleid=-1;
         System.out.println("zouqi output: "+client_id+ "Zouqi000:"+ORole_id+","+x+","+y);
         managerC.MessToServer(client_id+ "Zouqi000:"+ORole_id+","+x+","+y);
     }
     public void takeqi(int ORole_id, int PRole_id) {
+        his_O_roleid=ORole_id;
+        his_x=chessArray.get(getchessByRole_id_toArrayid(ORole_id)).getQipanx();
+        his_y=chessArray.get(getchessByRole_id_toArrayid(ORole_id)).getQipany();
+        his_dead_roleid=PRole_id;
         managerC.MessToServer(client_id+"Takeqi00:"+ORole_id+","+PRole_id);
     }
     public void AskRefresh() {
@@ -792,8 +1123,106 @@ public class xiangqiNet extends InputAdapter implements ApplicationListener, Cli
         managerC.MessToServer(client_id+ "Idsend00:"+client_id);
         return true;
     }
-    public void ask_RB(){
-        System.out.println("use ask_RB: "+client_id+"RBask000:"+client_id);
-        managerC.MessToServer(client_id+"RBask000:"+client_id);
+    public String getChessMap(){//获取整个棋盘
+        String s=new String();
+        for (chess chess0 : chessArray) {
+            s=s+"("+chess0.getRole_id()+","+chess0.getQipanx()+","+chess0.getQipany()+")";
+        }
+        for (chess chess0 : RedTakenChessArray) {
+            s=s+"("+chess0.getRole_id()+")";
+        }
+        for (chess chess0 : BlackTakenChessArray) {
+            s=s+"("+chess0.getRole_id()+")";
+        }
+        return s;
+    }
+    public void readChessMap(String s){//从流中加载对局
+        int a;int b;int c;
+        String temp1="";
+        String temp2="";
+        while(s.contains("(")) {
+            a=s.indexOf("(");b=s.indexOf(")");//a为
+            temp1=s.substring(a+1,b);
+            s=s.substring(b+1);
+            if(temp1.contains(",")){//棋子是活的
+                temp2=temp1.substring(0,temp1.indexOf(","));
+                a=Integer.parseInt(temp2);
+                temp1=temp1.substring(temp1.indexOf(",")+1);
+                temp2=temp1.substring(0,temp1.indexOf(","));
+                b=Integer.parseInt(temp2);
+                temp1=temp1.substring(temp1.indexOf(",")+1);
+                c=Integer.parseInt(temp1);
+                if(getchessByRole_id(a)!=null) {
+                    getchessByRole_id(a).setqipanLocation(b, c);
+                    getchessByRole_id(a).qipanLocationRefresh();
+                }
+                else {
+                    if (getchessByRole_id_InRedTaken(a) != null) {
+                        for (int i = 0; i < RedTakenChessArray.size; i++) {
+                            if(RedTakenChessArray.get(i).getRole_id()==a){
+                                chessArray.add(RedTakenChessArray.get(i));
+                                RedTakenChessArray.removeIndex(i);
+                            }
+                        }
+                        getchessByRole_id(a).setqipanLocation(b, c);
+                        getchessByRole_id(a).qipanLocationRefresh();
+                    }else {
+                        if (getchessByRole_id_InBlackTaken(a) != null) {
+                            for (int i = 0; i < BlackTakenChessArray.size; i++) {
+                                if(BlackTakenChessArray.get(i).getRole_id()==a){
+                                    chessArray.add(BlackTakenChessArray.get(i));
+                                    BlackTakenChessArray.removeIndex(i);
+                                }
+                            }
+                            getchessByRole_id(a).setqipanLocation(b, c);
+                            getchessByRole_id(a).qipanLocationRefresh();
+                        }
+                    }
+                }
+            }
+            else {
+                    if(getchessByRole_id(a)!=null){
+                        if(chessArray.get(getchessByRole_id_toArrayid(a)).isCamp()){
+                            BlackTakenChessArray.add(chessArray.get(getchessByRole_id_toArrayid(a)));
+                        }else {
+                            RedTakenChessArray.add(chessArray.get(getchessByRole_id_toArrayid(a)));
+                        }
+                        chessArray.removeIndex(getchessByRole_id_toArrayid(a));
+                    }
+
+            }
+        }
+        FenbuRefresh();
+    }
+
+    public DengLu getDengluqi() {
+        return dengluqi;
+    }
+    public void setDengluqi(DengLu dengluqi) {
+        this.dengluqi = dengluqi;
+    }
+    public void jiangJUN_judge(int O_role_id,int x,int y){
+
+    }
+    public void setHistory_step(int O_role_id,int history_x,int history_y,int dead_role_id){//死掉的棋子，若没死掉的棋子置为-1
+        his_O_roleid=O_role_id;
+        his_x=history_x;
+        his_y=history_y;
+        his_dead_roleid=dead_role_id;
+    }
+    public void FenbuRefresh(){
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 11; j++) {
+                chessFenbu[i][j]=0;//0代表空
+            }
+        }
+        for (chess chess1 : chessArray) {
+            int x=chess1.getArrayQx();int y=chess1.getArrayQy();
+            if(chess1.isCamp())
+                chessFenbu[x][y]=1;
+            else
+                chessFenbu[x][y]=-1;
+        }
     }
 }
+

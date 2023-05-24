@@ -1,22 +1,23 @@
 package com.mygdx.game;
 
 
-import com.mygdx.game.itf.ClientNetSender;
+
+import com.mygdx.game.itf.Client;
 
 import java.io.IOException;
 import java.net.Socket;
 
-public class NetManagerC implements ClientNetSender {
+public class NetManagerC{
     //private volatile boolean flag = true;
     public String ipAddress="localhost";
     public int port=6666;
-    private xiangqiNet game;
+    private Client game;
     private String inputLine;
     private String temp1;
     private String temp2;
     private Thread threadClient;
     private Thread threadServer;
-    private ConnectThread connect;
+    public ConnectThread connect;
     //private ArrayList<Socket> sockets;
     private Socket socket;
     private boolean Contiune=true;
@@ -24,13 +25,15 @@ public class NetManagerC implements ClientNetSender {
     private int playNum=2;
     private int playCount=0;
     private boolean jixugongzuo=true;
-
+    public void dispose(){
+        jixugongzuo=false;
+    }
     public String intTOMess(int ss){
         temp1="["+ss+"]";
         return temp1;
     }
     //主逻辑
-    public NetManagerC(xiangqiNet game0){
+    public NetManagerC(Client game0){
         game = game0;
         //System.out.println(game==null);
         connect=null;
@@ -41,8 +44,8 @@ public class NetManagerC implements ClientNetSender {
                     super.run();
                         while (jixugongzuo) {
                             try {
-                                Thread.sleep(500);
                                 sendBeat();
+                                Thread.sleep(500);
                                 ConnectManager();
                             } catch (Exception e) {
                                 if(connect!=null) {
@@ -98,5 +101,4 @@ public class NetManagerC implements ClientNetSender {
         connect.start();
         //创建新线程
     }
-
 }

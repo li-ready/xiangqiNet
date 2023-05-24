@@ -1,4 +1,6 @@
 package com.mygdx.game;
+import com.mygdx.game.itf.Client;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -11,11 +13,11 @@ public class ConnectThread extends Thread{
     private BufferedReader in;
     private PrintWriter out;
     private Socket socket;
-    private xiangqiNet game;
+    private Client game;
     public int id=1000;
     private boolean cz=true;
 
-    public ConnectThread(Socket socket0,xiangqiNet game1)  {
+    public ConnectThread(Socket socket0,Client game1)  {
         game=game1;
         socket=socket0;
         try {

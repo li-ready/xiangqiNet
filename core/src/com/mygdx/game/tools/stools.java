@@ -1,8 +1,14 @@
 package com.mygdx.game.tools;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
+import com.badlogic.gdx.scenes.scene2d.ui.Button;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
 public abstract class stools {
     private stools() {}
@@ -92,5 +98,16 @@ public abstract class stools {
             System.out.println("dataset X= "+vector3.x+"  Y= "+vector3.y+"  Z= "+vector3.z);
         }
         return dataset;
+    }
+    //默认+1到末尾为按下效果,默认为png格式,默认调用了assetsaddress
+    public static Button createButton(String address1){
+        Texture myTexture1 = new Texture(Gdx.files.internal(stools.assetaddress(address1+".png")));
+        TextureRegion myTextureRegion1 = new TextureRegion(myTexture1);
+        Drawable drawable1=new TextureRegionDrawable(myTextureRegion1);
+        Texture myTexture = new Texture(Gdx.files.internal(stools.assetaddress(address1+"1.png")));
+        TextureRegion myTextureRegion = new TextureRegion(myTexture);
+        Drawable drawable=new TextureRegionDrawable(myTextureRegion);
+        Button button=new Button(drawable1,drawable);
+        return button;
     }
 }

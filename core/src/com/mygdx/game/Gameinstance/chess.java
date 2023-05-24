@@ -23,7 +23,7 @@ public class chess extends ModelInstance {
 
  private int Role_id=0;
  public boolean isCamp() {
-  return camp;
+  return camp;//棋子的阵营.true为红方
  }
  //走棋判断,需要子类重写
 public boolean zouqiJudge(int x,int y,int[][] fenbu){return false;}

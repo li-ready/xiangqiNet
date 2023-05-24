@@ -47,17 +47,23 @@ project(":desktop") {
         implementation project(":core")
         api "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
         api "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
-        
+        api "io.github.spair:imgui-java-binding:$imguiVersion"
+        api "io.github.spair:imgui-java-lwjgl3:$imguiVersion"
+        api "io.github.spair:imgui-java-natives-linux:$imguiVersion"
+        api "io.github.spair:imgui-java-natives-macos:$imguiVersion"
+        api "io.github.spair:imgui-java-natives-windows:$imguiVersion"
     }
 }
 
 project(":core") {
     apply plugin: "java-library"
-
-
     dependencies {
         api "com.badlogicgames.gdx:gdx:$gdxVersion"
-        
+        api "io.github.spair:imgui-java-binding:$imguiVersion"
+        api "io.github.spair:imgui-java-lwjgl3:$imguiVersion"
+        api "io.github.spair:imgui-java-natives-linux:$imguiVersion"
+        api "io.github.spair:imgui-java-natives-macos:$imguiVersion"
+        api "io.github.spair:imgui-java-natives-windows:$imguiVersion"
     }
 }
 
